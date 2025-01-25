@@ -1,26 +1,39 @@
-# Adjust the next three lines if you're on a Pi
-FLAVOR = nopi
-INCLUDE = $(INCLUDE_NOPI)
-LDFLAGS = $(LDFLAGS_NOPI)
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall -g
+LDFLAGS = -lncurses
 
-INCLUDE_PI := -I ~/include
-LDFLAGS_PI := -L ~/lib -lsense -lm
-INCLUDE_NOPI := 
-LDFLAGS_NOPI := -lncurses
+# Targets and files
+TARGET = clock
+SRC = main.c display.c
+OBJ = $(SRC:.c=.o)
 
-all: clock
+# Raspberry Pi configuration (if needed)
+FLAVOR = mac
+INCLUDE_PI = -I/usr/include/ncurses
+LDFLAGS_PI = -lwiringPi
 
-clock: main.o display.o
-	cc -o $@ $^ $(LDFLAGS)
+ifeq ($(FLAVOR),pi)
+    INCLUDE = $(INCLUDE_PI)
+    LDFLAGS = $(LDFLAGS_PI)
+endif
 
-run: clock
-	./$<.sh | ./$<
+# Default target
+all: $(TARGET)
 
+# Build the executable
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LDFLAGS)
+
+# Compile source files to object files
+%.o: %.c
+	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
+
+# Ensure `clock.sh` is executable, then run it
+run: $(TARGET)
+	chmod +x clock.sh
+	./clock.sh | ./$(TARGET)
+
+# Clean up build files
 clean:
-	rm -f *.o clock
-	
-main.o: main.c display.h
-	cc -c $< $(LDFLAGS)
-
-display.o: display.c display.h
-	cc $< -c $(LDFLAGS)
+	rm -f $(OBJ) $(TARGET)
